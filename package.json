@@ -1,0 +1,38 @@
+{
+  "name": "rad-geo",
+  "version": "0.0.1",
+  "description": "rad-geo is a Reveal.js RadReveal add-on that helps you display maps in your slideshow.",
+  "main": "build/geo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joelarson4/rad-geo"
+  },
+  "scripts": {
+    "test": "gulp test"
+  },
+  "dependencies": {
+    "reveal.js": "3.0.0",
+    "rad-reveal": "0.0.6"
+  },
+  "devDependencies": {
+    "browserify": "8.0.0",
+    "chai": "~1.10.0",
+    "del": "~1.1.1",
+    "gulp": "~3.8.9",
+    "gulp-jshint": "~1.9.2",
+    "gulp-mocha": "~1.1.1",
+    "gulp-mocha-phantomjs": "~0.5.1",
+    "gulp-rename": "~1.2.0",
+    "gulp-shell": "~0.2.11",
+    "gulp-uglify": "~1.0.1",
+    "mocha": "~2.0.1",
+    "vinyl-transform": "~1.0.0",
+    "webshot": "^0.15.4"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/joelarson4/rad-geo/blob/master/LICENSE"
+    }
+  ]
+}
