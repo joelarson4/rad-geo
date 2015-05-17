@@ -1,0 +1,17 @@
+- attrs (data-rad-geo*)
+    -loc = supply location(s)* to show 
+    -speed = slow, medium, fast or ms
+    -zoom = 'stay', 'auto' (loc appropriate) or 
+    //-goto = 'loc', 'stay', or location
+    //-goto-speed = slow, medium, fast or ms
+    //-zoom-speed = slow, medium, fast or ms
+    //-style = change map style
+    //-overlay = display kml or something
+
+- location (one or more semicolon sep):
+    lat/lon
+    lat/lon/Label
+    Search String (if geocoding possible)
+
+[] readme
+[]

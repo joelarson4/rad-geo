@@ -25,88 +25,52 @@
 
             <!-- Any section element inside of this container is displayed as a slide -->
             <div class="slides">
-<section data-rad-geo data-rad-geo-background="red" data-rad-geo-foreground="yellow">
+<section data-rad-geo>
     <h1>rad-geo</h1>
     <h2>a RadReveal addon for Reveal.js</h2>
     <p><a href="https://github.com/joelarson4/rad-geo">check it out on github!</a></p>
 </section>
 
-<section data-rad-geo data-rad-randomizer="HEADINGS">
+<section data-rad-geo>
     <h2>What does it do?</h2>
-    <p><strong>rad-geo</strong> can add varying background and foreground colors to your slides.</p>
+    <p><strong>rad-geo</strong> helps you display maps in your presentations.</p>
 </section>
 
-<section data-rad-geo data-rad-randomizer="HEADINGS">
+<section data-rad-geo>
     <h2>Why would you want to?</h2>
-    <p>Colors make your slide show fun and visually interesting.</p>
+    <p>Maps are visually interesting and can add depth to your talk if anything geographic is involved.</p>
 </section>
 
-<section data-rad-geo data-rad-randomizer="HEADINGS">
+<section data-rad-geo>
     <h2>How do you use it?</h2>
-    <p>Just add a <code>data-rad-geo</code> attribute to any slide.</p>
-    <p class="fragment">Those slides will have a randomly selected background and foreground color assigned.</p>
+    <p>Just ...</p>
 </section>
 
-<section data-rad-geo data-rad-randomizer="HEADINGS">
-    <h2>What if you don't want colors changing every reload?</h2>
-    <p>You can add the <a href="https://github.com/joelarson4/rad-randomizer" target="_blank"><code>rad-randomizer</code></a> add-on
-        to your slideshow and use that to get random <em>seeming</em> color combinations for each slide.</p>
-    <p class="fragment">But this randomizer is seeded using slide contents, so the color selection <em>won't</em> change from reload to reload.</p>
+<section data-rad-geo-loc="47.7717° N, 122.2044° W">
+    simple lat lon from google
 </section>
 
-<section data-rad-geo data-rad-randomizer="HEADINGS">
-    <h2>What if you want to change the set of colors being used?</h2>
-    <p>Add a <code>data-rad-geo-pallete</code> attribute to a slide and set it to one of the available palettes.</p>
-    <p class="fragment">That palette will continue to be used for slides that follow.</p>
+<section data-rad-geo-loc="47.7717° N, 122.2044° W, Bothell\, WA">
+    simple lat lon from google w/ label
 </section>
 
-<section data-rad-geo data-rad-geo-palette="sea" data-rad-randomizer="RANDOM" data-transition="none">
-    <h2>Change palette to <code>sea</code></h2>
+<section data-rad-geo-speed="222ms" data-rad-geo-loc="47.7717° N, 122.2044° W, Bothell\, WA; 47.9511° N, 124.3847° W, Forks\, WA; 48.9972° N, 122.2656° W, Sumas\, WA">
+    list of lat lon from google
 </section>
 
-<section data-rad-geo data-rad-randomizer="HEADINGS" data-transition="none">
-    <h2>Change palette to <code>sea</code>.</h2>
+<section data-rad-geo-loc="47.7717° N, 122.2044° W, Bothell\, WA" data-rad-geo-zoom="5">
+    simple lat lon from google w/ label
 </section>
 
-<section data-rad-geo data-rad-randomizer="HEADINGS" data-transition="none">
-    <h2>Change palette to <code>sea</code>..</h2>
+<section>
+    <h2>No geo</h2>
+    <p>Just ...</p>
 </section>
 
-<section data-rad-geo data-rad-randomizer="HEADINGS" data-transition="none">
-    <h2>Change palette to <code>sea</code>...</h2>
-</section>
-
-<section data-rad-geo data-rad-geo-palette="crayons" data-rad-randomizer="RANDOM" data-transition="none">
-    <h2>Change palette to <code>crayons</code></h2>
-</section>
-
-<section data-rad-geo data-rad-randomizer="HEADINGS" data-transition="none">
-    <h2>Change palette to <code>crayons</code>.</h2>
-</section>
-
-<section data-rad-geo data-rad-randomizer="HEADINGS" data-transition="none">
-    <h2>Change palette to <code>crayons</code>..</h2>
-</section>
-
-<section data-rad-geo data-rad-randomizer="HEADINGS" data-transition="none">
-    <h2>Change palette to <code>crayons</code>...</h2>
-</section>
-
-<section data-rad-geo data-rad-geo-foreground="white" data-rad-geo-background="magenta">
-    <h2>What if you want to use a specific background or foreground?</h2>
-    <p class="fragment">Just add an attribute <code>data-rad-randomizer-background</code> and/or 
-        <code>data-rad-randomizer-foreground</code> set to the color value you want.</p>
-</section>
-
-<section data-rad-geo data-rad-geo-palette="warm">
-    <h2>Can you supply your own color palette?</h2>
-    <p class="fragment">Of course! This slide does. Check out the <a href="https://github.com/joelarson4/rad-geo">project README.md</a> for more information.</p>
-</section>
-
-<section data-rad-geo data-rad-randomizer="last">
+<section data-rad-geo>
     <h2>That's all folks</h2>
     <p><a href="https://github.com/joelarson4/rad-geo">Check out the project on github.</a></p>
-    <p>Happy colorizing!</p>
+    <p>Happy exploring!</p>
 </section>
 
         </div>
@@ -116,15 +80,7 @@
         <script src="node_modules/rad-reveal/build/radReveal.min.js"></script>
         <script>
 
-            var geoConfig = {
-                palette: 'standard',
-                palettes: { 
-                    warm: {
-                        name: 'warm',
-                        colors: { red: '#f40', orange: '#fb4', yellow: '#ff4', brown: '#b40' }
-                    }
-                }
-            };
+            var geoConfig = { };
 
             Reveal.initialize({
                 controls: true,
@@ -133,7 +89,6 @@
                 center: false,
 
                 dependencies: [
-                    { src: 'node_modules/rad-randomizer/build/randomizer.min.js', radName: 'randomizer' },
                     { src: 'build/geo.js', radName: 'geo', radConfig: geoConfig }
                 ]
             });

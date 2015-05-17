@@ -1,3 +1,4 @@
+require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/Users/larsonj/Sites/radReveal/rad-geo/src/geo.js":[function(require,module,exports){
 /*!
  * rad-geo
  * http://joelarson4.github.io/rad-geo
@@ -182,3 +183,59 @@ RadReveal.on('data-rad-geo-zoom', 'show', setZoom);
 
 
 
+
+},{"./protoMapProvider.js":1,"rad-reveal":"rad-reveal"}],1:[function(require,module,exports){
+var ele = document.createElement('div');
+
+ele.style.width = '100%';
+ele.style.height = '100%';
+ele.style.position = 'absolute';
+ele.style.backgroundColor = 'cyan';
+ele.style.zIndex = '-1'; //revisit
+ele.style.display = 'none';
+ele.style.top = '0';
+ele.style.left = '0';
+document.body.appendChild(ele);
+document.body.position = 'static';
+
+
+function show() {
+    //TODO: need animated opacity
+    ele.style.display = 'block';
+    proto('show')();
+}
+
+function hide() {
+    //TODO: need animated opacity
+    ele.style.display = 'none';
+    proto('hide')();
+}
+
+var messageCount = 0;
+var messages = [];
+
+function proto(name) {
+    return function(options) {
+        console.log([name, options]);
+        messages.push((messageCount++) + ' ' + name + ' ' + JSON.stringify(options));
+        if(messages.length > 10) {
+            messages.shift();
+        }
+        ele.innerHTML = messages.join('<br>');
+        if(options && typeof options.callback == 'function') {
+            options.callback();
+        }
+    }
+}
+
+
+module.exports = {
+    initialize: proto('initialize'),
+    setSpeed: proto('setSpeed'),
+    setZoom: proto('setZoom'),
+    setLoc: proto('setLoc'),
+    setGoto: proto('setGoto'),
+    show: show,
+    hide: hide
+}
+},{}]},{},["/Users/larsonj/Sites/radReveal/rad-geo/src/geo.js"]);

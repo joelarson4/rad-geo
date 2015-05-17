@@ -6,6 +6,7 @@ var uglify = require('gulp-uglify');
 var mocha = require('gulp-mocha');
 var shell = require('gulp-shell');
 var jshint = require('gulp-jshint');
+var bump = require('gulp-bump');
 var del = require('del');
 var mochaPhantomJS = require('gulp-mocha-phantomjs');
 var browserify = require('browserify');
@@ -33,13 +34,14 @@ function testDemo() {
         .pipe(mochaPhantomJS());
 }
 
+/*
 function setupTestMisc(testNumber) {
     return function() {
         process.env.TEST_NUMBER = testNumber;
         return gulp.src('misc.html')
             .pipe(mochaPhantomJS());
     };
-}
+}*/
 
 //tasks
 gulp.task('default', function() {
@@ -61,7 +63,13 @@ gulp.task('build', function() {
         .pipe(gulp.dest(builddir));
 });
 
+gulp.task('copy-css', function() {
+    return gulp.src('src/geo.css')
+        .pipe(gulp.dest(builddir));
+});
 
+
+/*
 var tests = ['testDemo'];
 
 gulp.task('testDemo', testDemo);
@@ -73,3 +81,27 @@ for(var testNumber = 0; testNumber < 3; testNumber++) {
 }
 
 gulp.task('test', [tests[tests.length - 1]]);
+*/
+
+gulp.task('test', testDemo);
+
+
+gulp.task('versionBumpPackage', function(){
+    return gulp.src('./package.json')
+        .pipe(bump())
+        .pipe(gulp.dest('./'));
+});
+
+gulp.task('versionBump', ['versionBumpPackage'], function() {
+    var version = require('./package.json').version;
+    
+    var exec = require('child_process').exec;
+    exec('git tag v' + version, function (error, stdout, stderr) {
+        if(error) { console.log(error); return; }  
+        exec('git add package.json; git commit --m \'Bumping version to ' + version + '\'', function (error, stdout, stderr) {
+            if(error) { console.log(error); return; } 
+            console.log('Version now at ' + version);
+        });
+    });
+});
+
