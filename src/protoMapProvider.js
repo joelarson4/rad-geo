@@ -1,15 +1,13 @@
-var ele = document.createElement('div');
-
-ele.style.width = '100%';
-ele.style.height = '100%';
-ele.style.position = 'absolute';
-ele.style.backgroundColor = 'cyan';
-ele.style.zIndex = '-1'; //revisit
-ele.style.display = 'none';
-ele.style.top = '0';
-ele.style.left = '0';
-document.body.appendChild(ele);
-document.body.position = 'static';
+'use strict';
+var ele;
+alert('fixme!');
+function initialize() {
+    ele = document.createElement('div');
+    ele.className = 'rad-geo-container';
+    ele.style.backgroundColor = 'cyan';
+    document.body.appendChild(ele);
+    proto('init')();
+}
 
 
 function show() {
@@ -29,8 +27,7 @@ var messages = [];
 
 function proto(name) {
     return function(options) {
-        console.log([name, options]);
-        messages.push((messageCount++) + ' ' + name + ' ' + JSON.stringify(options));
+        messages.push((messageCount++) + ' ' + name + ' ' + ( options ? JSON.stringify(options) : '' ));
         if(messages.length > 10) {
             messages.shift();
         }
@@ -41,9 +38,8 @@ function proto(name) {
     }
 }
 
-
 module.exports = {
-    initialize: proto('initialize'),
+    initialize: initialize,
     setSpeed: proto('setSpeed'),
     setZoom: proto('setZoom'),
     setLoc: proto('setLoc'),

@@ -46,19 +46,24 @@
     <p>Just ...</p>
 </section>
 
-<section data-rad-geo-loc="47.7717° N, 122.2044° W">
+<section data-rad-geo-goto="50° N, 100° W">
     simple lat lon from google
 </section>
 
-<section data-rad-geo-loc="47.7717° N, 122.2044° W, Bothell\, WA">
+<section data-rad-geo-pin="47.7717° N, 122.2044° W" data-rad-geo-goto="pin">
+    simple lat lon from google w/ pin
+</section>
+
+<section data-rad-geo-pin="47.7717° N, 122.2044° W, Bothell\, WA">
     simple lat lon from google w/ label
 </section>
 
-<section data-rad-geo-speed="222ms" data-rad-geo-loc="47.7717° N, 122.2044° W, Bothell\, WA; 47.9511° N, 124.3847° W, Forks\, WA; 48.9972° N, 122.2656° W, Sumas\, WA">
+<section data-rad-geo-speed="222ms" data-rad-geo-goto="pin" 
+    data-rad-geo-pin="47.7717° N, 122.2044° W, Bothell\, WA, BLUE/BLUE; 47.9511° N, 124.3847° W, Forks\, WA; 48.9972° N, 122.2656° W, Sumas\, WA">
     list of lat lon from google
 </section>
 
-<section data-rad-geo-loc="47.7717° N, 122.2044° W, Bothell\, WA" data-rad-geo-zoom="5">
+<section data-rad-geo-goto="47.7717° N, 122.2044° W, Bothell\, WA" data-rad-geo-zoom="5">
     simple lat lon from google w/ label
 </section>
 
@@ -79,8 +84,15 @@
         <script src="node_modules/reveal.js/js/reveal.js"></script>
         <script src="node_modules/rad-reveal/build/radReveal.min.js"></script>
         <script>
-
-            var geoConfig = { };
+            var geoConfig = { 
+                mapProviderModule: './cesiumMapProvider.js', 
+                xmapProviderConfig: {
+                    imageryProviderClass: 'BingMapsImageryProvider',
+                    imageryProviderConfig: { 
+                        mapStyle: 'ROAD'
+                    }
+                }
+            };
 
             Reveal.initialize({
                 controls: true,

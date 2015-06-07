@@ -26,27 +26,16 @@
 
 //Developer note: we are not using jsdox to generate any markdown for this file; the API doesn't really suit it.  
 //  Some JsDoc is still provided for developer use
-
+'use strict';
 var RadReveal = require('rad-reveal');
 
 var mapProvider;
+var config;
+var lastShown;
+var lastHidden;
 
-/** 
- * Runs ...
- *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
- * @private
- */
-function showDisplay() {
-    mapProvider.show();
-}
+/*TODO FIX THIS REMOVE IT!*/require('./cesiumMapProvider.js');
 
-function hideDisplay() {
-    mapProvider.hide();
-}
 
 /** 
  * Runs when RadReveal initializes.
@@ -59,7 +48,7 @@ function initialize(inputConfig, slides) {
     config = inputConfig || {};
 
     var mpModule = config.mapProviderModule;
-    console.log(['mpModule',mpModule]);
+
     if(typeof mpModule == 'string') {
         mapProvider = require(mpModule);
     } else if(typeof mpModule == 'object') {
@@ -67,6 +56,8 @@ function initialize(inputConfig, slides) {
     } else {
         mapProvider = require('./protoMapProvider.js');
     }
+
+    mapProvider.initialize(config.mapProviderConfig);
 
     /*if(config.fillSlides) {
         slides.forEach(function(slide) {
@@ -77,7 +68,44 @@ function initialize(inputConfig, slides) {
     }*/
 }
 
-var REGEX_DECIMAL = /(-)?(\d.)*\.(\d)*/;
+
+/** 
+ * Runs ...
+ *
+ * @param {string} attrVal - value of the attribute
+ * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
+ * @param {object} event - the Reveal.js event
+ * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @private
+ */
+function loadSlide(attrVal, slideObj, event, radEventName) {
+    slideObj.data.geo = { };
+}
+
+/** 
+ * Runs ...
+ *
+ * @param {string} attrVal - value of the attribute
+ * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
+ * @param {object} event - the Reveal.js event
+ * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @private
+ */
+function showDisplay(attrVal, slideObj, event, radEventName) {
+    if(slideObj == lastShown) { return; } //avoid repeats;
+    lastShown = slideObj;
+
+    mapProvider.show(slideObj);
+}
+
+function hideDisplay(attrVal, slideObj, event, radEventName) {
+    if(slideObj == lastHidden) { return; } //avoid repeats;
+    lastHidden = slideObj;
+
+    mapProvider.hide(slideObj);
+}
+
+var REGEX_DECIMAL = /(-)?(\d)*(\.)?(\d)*/;
 
 //value is something like "47.7717° N, 122.2044° W" or "47,-122" or "47.7N,122.2W,Bothell" or "47.7N,122.2W,Bothell\,WA"
 // or a list of those seperated by Semicolons
@@ -86,19 +114,21 @@ function parseCoords(value) {
     var valueSplit = value.split(';');
     
     valueSplit.forEach(function(item) {
-        item = item.replace('\\,', '&#x002C;'); 
+        item = item.replace('\\,', 'x002C'); 
 
         var itemSplit = item.split(',');
-        
-        var lat = Number(itemSplit[0].match(REGEX_DECIMAL)[0]);
-        if(itemSplit[0].toUpperCase().indexOf('S')) { lat = -1 * Math.abs(lat); }
+        var lat = Number(itemSplit[0].trim().match(REGEX_DECIMAL)[0]);
+        if(itemSplit[0].toUpperCase().indexOf('S') > -1) { lat = -1 * Math.abs(lat); }
 
-        var lon = Number(itemSplit[1].match(REGEX_DECIMAL)[0]);
-        if(itemSplit[1].toUpperCase().indexOf('W')) { lon = -1 * Math.abs(lon); }
+        var lon = Number(itemSplit[1].trim().match(REGEX_DECIMAL)[0]);
+        if(itemSplit[1].toUpperCase().indexOf('W') > -1) { lon = -1 * Math.abs(lon); }
 
         var label = (itemSplit[2] || '').trim();
+        label = label.replace('x002C', ',');
 
-        coords.push({ lat: lat, lon: lon, label: label });
+        var color = (itemSplit[3] || '').trim();
+
+        coords.push({ lat: lat, lon: lon, label: label, original: item, color: color });
     });
     
     return coords;
@@ -113,9 +143,29 @@ function parseCoords(value) {
  * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
  * @private
  */
-function setLoc(attrVal, slideObj, event, radEventName) {
-    var coords = parseCoords(attrVal);
-    mapProvider.setLoc(coords);
+function setGoto(attrVal, slideObj, event, radEventName) {
+    var gotoData = (attrVal == 'pin' ? 'pin' : parseCoords(attrVal));
+    slideObj.data.geo['goto'] = gotoData;
+    if(typeof mapProvider.setGoto == 'function') {
+        mapProvider.setGoto(gotoData);
+    }
+}
+
+/** 
+ * Runs ...
+ *
+ * @param {string} attrVal - value of the attribute
+ * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
+ * @param {object} event - the Reveal.js event
+ * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @private
+ */
+function setPin(attrVal, slideObj, event, radEventName) {
+    var pinData = parseCoords(attrVal);
+    slideObj.data.geo.pin = pinData;
+    if(typeof mapProvider.setPins == 'function') {
+        mapProvider.setPins(pinData);
+    }
 }
 
 /** 
@@ -136,13 +186,15 @@ function setSpeed(attrVal, slideObj, event, radEventName) {
     } else if(speed == 'fast') {
         speed = 100;
     } else {
-        console.log([attrVal, attrVal.match(REGEX_DECIMAL)]);
         speed = Number((attrVal.match(REGEX_DECIMAL) || [ '333' ])[0]);
         if(isNaN(speed)) {
             speed = 333;
         }
     } 
-    mapProvider.setSpeed(speed);
+    slideObj.data.geo.speed = speed;
+    if(typeof mapProvider.setSpeed == 'function') {
+        mapProvider.setSpeed(speed);
+    }
 }
 
 /** 
@@ -155,28 +207,25 @@ function setSpeed(attrVal, slideObj, event, radEventName) {
  * @private
  */
 function setZoom(attrVal, slideObj, event, radEventName) {
-    mapProvider.setZoom(attrVal);
+    slideObj.data.geo.zoom = attrVal;
+    if(typeof mapProvider.setZoom == 'function') {
+        mapProvider.setZoom(attrVal);
+    }
 }
 
 RadReveal.register('geo', initialize);
 
 //TODO: need a * or need array on
-RadReveal.on('data-rad-geo', 'hide', hideDisplay);
-RadReveal.on('data-rad-geo', 'show', showDisplay);
-RadReveal.on('data-rad-geo-loc', 'hide', hideDisplay);
-RadReveal.on('data-rad-geo-loc', 'show', showDisplay);
-RadReveal.on('data-rad-geo-speed', 'hide', hideDisplay);
-RadReveal.on('data-rad-geo-speed', 'show', showDisplay);
-RadReveal.on('data-rad-geo-zoom', 'hide', hideDisplay);
-RadReveal.on('data-rad-geo-zoom', 'show', showDisplay);
+RadReveal.on('data-rad-geo*', 'load', loadSlide);
 
+RadReveal.on('data-rad-geo*', 'hide', hideDisplay);
 
-RadReveal.on('data-rad-geo-loc', 'show', setLoc);
+RadReveal.on('data-rad-geo-goto', 'show', setGoto);
+RadReveal.on('data-rad-geo-pin', 'show', setPin);
 RadReveal.on('data-rad-geo-speed', 'show', setSpeed);
 RadReveal.on('data-rad-geo-zoom', 'show', setZoom);
-RadReveal.on('data-rad-geo-zoom', 'show', setZoom);
-//RadReveal.on('data-rad-geo', 'hide', hideGeo);
-//RadReveal.on('data-rad-geo-loc', 'load', setLocations);
+
+RadReveal.on('data-rad-geo*', 'show', showDisplay);
 
 
 

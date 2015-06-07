@@ -1,0 +1,34 @@
+body {
+    position: static;
+}
+
+.rad-geo-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+    font-family: sans-serif;
+    z-index: 0;
+}
+
+.reveal *,
+.reveal h1, 
+.reveal h2, 
+.reveal h3, 
+.reveal h4, 
+.reveal h5, 
+.reveal h6 {
+    text-shadow: 
+        -1px -2px 0px white,
+        -1px  0px 0px white,
+        -1px  1px 0px white,
+         0px -2px 0px white,
+         0px  1px 0px white,
+         1px -2px 0px white,
+         1px  0px 0px white,
+         1px  1px 0px white;
+}
