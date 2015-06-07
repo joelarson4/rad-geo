@@ -1,4 +1,9 @@
-#rad-geo [![Build Status](https://travis-ci.org/joelarson4/rad-geo.svg)](https://travis-ci.org/joelarson4/rad-geo)
+#ATTENTION: THIS IS A WORK IN PROGRESS
+Please check back in a few weeks!
+
+-----
+
+#rad-geo XX put back build status!
 rad-geo is a [Reveal.js](http://lab.hakim.se/reveal-js/) [RadReveal](https://github.com/joelarson4/radReveal) add-on that helps you display maps in your slideshow.
 
 Check out the [demo slideshow](http://joelarson4.github.io/rad-geo/demo.html) to see what rad-geo can do.
@@ -31,4 +36,4 @@ var RadReveal = require('rad-reveal');
 RadReveal.initialize();
 ```
 
-Finally...
+.... more details coming!
