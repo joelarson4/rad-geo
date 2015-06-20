@@ -215,6 +215,22 @@ function setZoom(attrVal, slideObj, event, radEventName) {
     }
 }
 
+/** 
+ * Runs ...
+ *
+ * @param {string} attrVal - value of the attribute
+ * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
+ * @param {object} event - the Reveal.js event
+ * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @private
+ */
+function setStyle(attrVal, slideObj, event, radEventName) {
+    slideObj.data.geo.style = attrVal;
+    if(typeof mapProvider.setStyle == 'function') {
+        mapProvider.setStyle(attrVal);
+    }
+}
+
 RadReveal.register('geo', initialize);
 
 //TODO: need a * or need array on
@@ -226,6 +242,7 @@ RadReveal.on('data-rad-geo-goto', 'show', setGoto);
 RadReveal.on('data-rad-geo-pin', 'show', setPin);
 RadReveal.on('data-rad-geo-speed', 'show', setSpeed);
 RadReveal.on('data-rad-geo-zoom', 'show', setZoom);
+RadReveal.on('data-rad-geo-style', 'show', setStyle);
 
 RadReveal.on('data-rad-geo*', 'show', showDisplay);
 

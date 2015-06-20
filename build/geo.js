@@ -23,8 +23,6 @@ function initialize(config) {
     ele.id = 'rad-geo-cesiumjs-container'
     document.body.appendChild(ele);
     runOnceCesium(10, config); 
-
-    proto('init')();
 }
 
 //TODO: best way?
@@ -49,45 +47,29 @@ function runOnceCesium(count, config) {
         sceneModePicker: false
     }
 
-    if(config) {
+    setupMapStyles();
+
+    if(config) {/*rethink
         if(typeof config.imageryProviderClass == 'string') {
             var className = config.imageryProviderClass;
             var ipConfig = config.imageryProviderConfig;
             
             if(className == 'BingMapsImageryProvider') {
-                //TODO: what to do here?
-                var lsKey = 'rad-geo-cesium-bingMapsApi-defaultKey';
-                var bingKey = localStorage.getItem(lsKey);
-                if(bingKey) {
-                    Cesium.BingMapsApi.defaultKey = bingKey;
-                } else {
-                    console.log('Once you have a bing maps key, set it using `localStorage.setItem(\'' + lsKey + '\', \'your-key\');`.  Meanwhile, some functionality may not be available.');
-                }
-
-                if(ipConfig && ipConfig.mapStyle) {
-                    ipConfig = {
-                        url : '//dev.virtualearth.net',
-                        key : bingKey,
-                        mapStyle : Cesium.BingMapsStyle[ipConfig.mapStyle]
-                    };
-                }
-
-                options.imageryProvider = new Cesium[className](ipConfig);
+                options.imageryProvider = getBingMapsImageryProvider(ipConfig.mapStyle);
             } else {
                 throw new Error('Unknown imageryProviderClass');
             }
         } else if(typeof config.imageryProvider == 'object') {
             options.imageryProvider = config.imageryProvider;
         }
-    }
+    */}
 
     viewer = new Cesium.Viewer(ele.id, options);
     document.querySelector('.cesium-infoBox-iframe').setAttribute('sandbox', 'allow-same-origin allow-popups allow-forms allow-scripts');
 }
 
-
 function show(slideObj) {
-    if(typeof Cesium == 'undefined') {
+    if(typeof Cesium == 'undefined' || viewer == null) {
         setTimeout(function() {
             show(slideObj);
         }, 100);
@@ -98,7 +80,12 @@ function show(slideObj) {
     var pinData = slideObj.data.geo.pin;
     var zoomData = slideObj.data.geo.zoom;
     var speedData = slideObj.data.geo.speed;
+    var styleData = slideObj.data.geo.style;
     
+    if(styleData) {
+        doStyle(styleData);
+    }
+
     if(gotoData == 'pin' && pinData) { 
         doGoto(pinData, zoomData, speedData);
     } else if(gotoData) {
@@ -126,6 +113,82 @@ function hide() {
     ele.style.display = 'none';
 } 
 
+var createdImageryProviderLayers = {};
+var imageryProviders = { };
+var mapStyles = {};
+
+function setupMapStyles() {
+    imageryProviders = {
+        NASA_BLACKMARBLE: function() {
+            return new Cesium.TileMapServiceImageryProvider({
+                url : '//cesiumjs.org/tilesets/imagery/blackmarble',
+                maximumLevel : 8,
+                credit : 'Black Marble imagery courtesy NASA Earth Observatory'
+            });
+        }
+    };
+    Object.keys(Cesium.BingMapsStyle).forEach(function(mapStyle) {
+        imageryProviders['BING_' + mapStyle] = function() { return getBingMapsImageryProvider(mapStyle); }
+    });
+
+
+    Object.keys(imageryProviders).forEach(function(imagery) {
+        ['SCENE2D', 'SCENE3D', 'COLUMBUS_VIEW'].forEach(function(sceneMode) {
+            mapStyles[sceneMode + '_' + imagery] = { sceneMode: sceneMode, imagery: imagery };
+        });
+    });
+}
+
+var currentSceneMode = 'SCENE3D';
+
+function changeSceneMode(sceneMode) {
+    if(currentSceneMode === sceneMode) {
+        return;
+    }
+
+    //var sceneTransitioner = new Cesium.SceneTransitioner(viewer.scene);
+    
+    if(sceneMode == 'SCENE2D') {
+        viewer.scene.morphTo2D(2);
+    } else if(sceneMode == 'SCENE3D') {
+        viewer.scene.morphTo3D(2);
+    } else if(sceneMode == 'COLUMBUS_VIEW') {
+        viewer.scene.morphToColumbusView(2);
+    }
+
+    currentSceneMode = sceneMode;
+}
+
+function getBingMapsImageryProvider(mapStyle) {
+    //TODO: what to do here?
+    var lsKey = 'rad-geo-cesium-bingMapsApi-defaultKey';
+    var bingKey = localStorage.getItem(lsKey);
+    if(bingKey) {
+        Cesium.BingMapsApi.defaultKey = bingKey;
+    } else {
+        console.log('Once you have a bing maps key, set it using `localStorage.setItem(\'' + lsKey + '\', \'your-key\');`.  Meanwhile, some functionality may not be available.');
+    }
+
+    return new Cesium.BingMapsImageryProvider({
+        url : '//dev.virtualearth.net',
+        key : bingKey,
+        mapStyle : Cesium.BingMapsStyle[mapStyle]
+    });
+}
+
+function doStyle(styleData) {
+    var layers = viewer.scene.imageryLayers;
+    var layer = createdImageryProviderLayers[mapStyles[styleData].imagery];
+    if(!layer) {
+        var imageryProvider = imageryProviders[mapStyles[styleData].imagery];
+        layer = layers.addImageryProvider(imageryProvider());
+        createdImageryProviderLayers[mapStyles[styleData].imagery] = layer;
+    } else {
+        layers.raiseToTop(layer);
+    }
+    changeSceneMode(mapStyles[styleData].sceneMode);
+}
+
 function doPin(pinData) {
     if(pinData == 'keep') {
         return; //all we need to do is not clear the pins!
@@ -136,22 +199,22 @@ function doPin(pinData) {
     var pinBuilder = new Cesium.PinBuilder(); //todo : cache
 
     pinData.forEach(function(coord) {
-        var colorSplit = (coord.color || 'BLACK/RED').split('/');
+        var colorSplit = (coord.color || 'WHITE/RED').split('/');
         var colorPin = colorSplit.pop();
-        var colorText = (colorSplit.length ? colorSplit[0] : 'BLACK');
+        var colorText = (colorSplit.length ? colorSplit[0] : 'WHITE');
         var pin = viewer.entities.add({
-            position : Cesium.Cartesian3.fromDegrees(coord.lon, coord.lat),
-            billboard : {
-                image : pinBuilder.fromColor(Cesium.Color[colorPin], 48).toDataURL(),
-                verticalOrigin : Cesium.VerticalOrigin.BOTTOM
+            position: Cesium.Cartesian3.fromDegrees(coord.lon, coord.lat),
+            billboard: {
+                image: pinBuilder.fromColor(Cesium.Color[colorPin], 48).toDataURL(),
+                verticalOrigin: Cesium.VerticalOrigin.BOTTOM
             },
             label: new Cesium.LabelGraphics({
-                text: coord.label || '', 
-                outlineColor: Cesium.Color.WHITE, 
-                outlineWidth: 1,
+                text: (coord.label || ''),
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 0,
                 fillColor: Cesium.Color[colorText],
                 pixelOffset: new Cesium.Cartesian2(0, 20),
-                style : Cesium.LabelStyle.FILL_AND_OUTLINE
+                style: Cesium.LabelStyle.FILL_AND_OUTLINE
             })
         });
         pins.push(pin);
@@ -458,6 +521,22 @@ function setZoom(attrVal, slideObj, event, radEventName) {
     }
 }
 
+/** 
+ * Runs ...
+ *
+ * @param {string} attrVal - value of the attribute
+ * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
+ * @param {object} event - the Reveal.js event
+ * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @private
+ */
+function setStyle(attrVal, slideObj, event, radEventName) {
+    slideObj.data.geo.style = attrVal;
+    if(typeof mapProvider.setStyle == 'function') {
+        mapProvider.setStyle(attrVal);
+    }
+}
+
 RadReveal.register('geo', initialize);
 
 //TODO: need a * or need array on
@@ -469,6 +548,7 @@ RadReveal.on('data-rad-geo-goto', 'show', setGoto);
 RadReveal.on('data-rad-geo-pin', 'show', setPin);
 RadReveal.on('data-rad-geo-speed', 'show', setSpeed);
 RadReveal.on('data-rad-geo-zoom', 'show', setZoom);
+RadReveal.on('data-rad-geo-style', 'show', setStyle);
 
 RadReveal.on('data-rad-geo*', 'show', showDisplay);
 

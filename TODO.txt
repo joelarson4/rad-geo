@@ -11,3 +11,5 @@
 
 [] readme
 [] demo
+[] github pages page
+[] two extra demos
