@@ -16,7 +16,8 @@
   },
   "devDependencies": {
     "browserify": "8.0.0",
-    "cesiumjs": "^1.7.2",
+    "cesium": "analyticalgraphicsinc/cesium",
+    "cesiumjs": "https://github.com/AnalyticalGraphicsInc/cesium",
     "chai": "~1.10.0",
     "del": "~1.1.1",
     "gulp": "~3.8.9",

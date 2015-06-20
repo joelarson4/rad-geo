@@ -104,4 +104,3 @@ gulp.task('versionBump', ['versionBumpPackage'], function() {
         });
     });
 });
-

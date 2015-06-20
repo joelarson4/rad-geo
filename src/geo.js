@@ -161,7 +161,7 @@ function setGoto(attrVal, slideObj, event, radEventName) {
  * @private
  */
 function setPin(attrVal, slideObj, event, radEventName) {
-    var pinData = parseCoords(attrVal);
+    var pinData = (attrVal == 'keep' ? 'keep' : parseCoords(attrVal));
     slideObj.data.geo.pin = pinData;
     if(typeof mapProvider.setPins == 'function') {
         mapProvider.setPins(pinData);
@@ -178,17 +178,19 @@ function setPin(attrVal, slideObj, event, radEventName) {
  * @private
  */
 function setSpeed(attrVal, slideObj, event, radEventName) {
-    var speed = 333;
-    if(speed == 'slow') {
-        speed = 1000;
-    } else if(speed == 'medium') {
-        speed = 333;
-    } else if(speed == 'fast') {
-        speed = 100;
+    var speed = 2000;
+    if(attrVal == 'slow') {
+        speed = 5000;
+    } else if(attrVal == 'medium') {
+        speed = 2000;
+    } else if(attrVal == 'fast') {
+        speed = 500;
+    } else if(attrVal == 'instant') {
+        speed = 0;
     } else {
-        speed = Number((attrVal.match(REGEX_DECIMAL) || [ '333' ])[0]);
+        speed = Number((attrVal.match(REGEX_DECIMAL) || [ '2000' ])[0]);
         if(isNaN(speed)) {
-            speed = 333;
+            speed = 2000;
         }
     } 
     slideObj.data.geo.speed = speed;

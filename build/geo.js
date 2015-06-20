@@ -96,17 +96,24 @@ function show(slideObj) {
 
     var gotoData = slideObj.data.geo['goto'];
     var pinData = slideObj.data.geo.pin;
-
-    if(gotoData) {
-        if(gotoData == 'pin' && pinData) { 
-            doGoto(pinData);
-        } else {
-            doGoto(gotoData);
-        }
+    var zoomData = slideObj.data.geo.zoom;
+    var speedData = slideObj.data.geo.speed;
+    
+    if(gotoData == 'pin' && pinData) { 
+        doGoto(pinData, zoomData, speedData);
+    } else if(gotoData) {
+        doGoto(gotoData, zoomData, speedData);
+    } else if(zoomData) {
+        doGoto([], zoomData, speedData);
     }
 
     if(pinData) {
+        console.log('pin');
+        console.log(pinData);
         doPin(pinData);
+    } else {
+        console.log('clear');
+        clearPins();
     }
 
     //TODO: need animated opacity
@@ -119,15 +126,16 @@ function hide() {
     ele.style.display = 'none';
 } 
 
-function doPin(coords) {
+function doPin(pinData) {
+    if(pinData == 'keep') {
+        return; //all we need to do is not clear the pins!
+    }
+    
+    clearPins();
+
     var pinBuilder = new Cesium.PinBuilder(); //todo : cache
 
-    pins.forEach(function(pin) {
-        viewer.entities.remove(pin);
-    });
-    pins = [];
-
-    coords.forEach(function(coord) {
+    pinData.forEach(function(coord) {
         var colorSplit = (coord.color || 'BLACK/RED').split('/');
         var colorPin = colorSplit.pop();
         var colorText = (colorSplit.length ? colorSplit[0] : 'BLACK');
@@ -140,7 +148,7 @@ function doPin(coords) {
             label: new Cesium.LabelGraphics({
                 text: coord.label || '', 
                 outlineColor: Cesium.Color.WHITE, 
-                outlineWidth: 4.0,
+                outlineWidth: 1,
                 fillColor: Cesium.Color[colorText],
                 pixelOffset: new Cesium.Cartesian2(0, 20),
                 style : Cesium.LabelStyle.FILL_AND_OUTLINE
@@ -150,27 +158,72 @@ function doPin(coords) {
     });
 }
 
-function doGoto(coords) {
-    if(coords.length == 1) {
-        viewer.camera.flyTo({
-            destination : Cesium.Cartesian3.fromDegrees(coords[0].lon, coords[0].lat, 2500000.0)
-        });
+function clearPins() {
+    pins.forEach(function(pin) {
+        viewer.entities.remove(pin);
+    });
+    pins = [];
+}
+
+function doGoto(gotoData, zoomData, speedData) {
+    if(gotoData == 'keep') {
+        throw new Error('we don\'t yet support goto=pins pins=keep');
+    }
+
+    var heightMeters = Number(zoomData);
+    var zoomDefaulted = (typeof zoomData == 'undefined');
+    if(zoomDefaulted || isNaN(heightMeters)) {
+        heightMeters = 1000000; //TODO: s/be config
+        zoomDefaulted = true;
+    }
+
+    var speedMs = Number(speedData);
+    if((typeof speedData == 'undefined') || isNaN(speedMs)) {
+        speedMs = 2000; //TODO: s/be config
+    }
+
+    var destination;
+
+    if(gotoData.length == 0) {
+        var center = viewer.camera.positionCartographic;
+        destination = Cesium.Cartesian3.fromRadians(center.longitude, center.latitude, heightMeters);
+    } else if(gotoData.length == 1) {
+        destination = Cesium.Cartesian3.fromDegrees(gotoData[0].lon, gotoData[0].lat, heightMeters);
     } else {
-        var cartos = [];
-        coords.forEach(function(coord) {
-            cartos.push(new Cesium.Cartographic.fromDegrees(coord.lon, coord.lat, 250000.0));
+        var cartos = gotoData.map(function(coord) {
+            return new Cesium.Cartographic.fromDegrees(coord.lon, coord.lat, heightMeters);
         });
         var rectangle = Cesium.Rectangle.fromCartographicArray(cartos);
+        var center = Cesium.Rectangle.center(rectangle);
+        var destination;
+        if(zoomDefaulted) {
+            //figure out how high this rectangle view would be, then zoom out a bit so the points aren't on the very edge
+            heightMeters = (4/3) * Cesium.Ellipsoid.WGS84.cartesianToCartographic(viewer.camera.getRectangleCameraCoordinates(rectangle)).height;
+        }
 
+        destination = Cesium.Cartesian3.fromRadians(center.longitude, center.latitude, heightMeters);
+    }
+    
+    viewer.camera.flyTo({ destination: destination, duration: speedMs / 1000 });
+} 
+
+function doZoom(zoom) {
+    zoom = Number(zoom);
+    if(isNaN(zoom)) {
+        console.log('invalid zoom ' + zoom);
+        return;
+    } 
+    var zoomMeters = Math.pow(10, Math.abs(zoom));
+    
+/*
         viewer.camera.flyTo({ 
             destination: rectangle,
-            complete: function() {
-                //todo: revisit
-                viewer.camera.zoomOut();        
-            }
-        });
-    }
-} 
+    if(zoom < 0) {
+        viewer.camera.zoomOut(zoomMeters);
+    } else {
+        viewer.camera.zoomIn(zoomMeters);
+    }*/ 
+}
 
 var messageCount = 0;
 var messages = [];
@@ -184,8 +237,6 @@ function proto(name) {
 
 module.exports = {
     initialize: initialize,
-    setSpeed: proto('setSpeed'),
-    setZoom: proto('setZoom'),
     show: show,
     hide: hide
 }
@@ -353,7 +404,7 @@ function setGoto(attrVal, slideObj, event, radEventName) {
  * @private
  */
 function setPin(attrVal, slideObj, event, radEventName) {
-    var pinData = parseCoords(attrVal);
+    var pinData = (attrVal == 'keep' ? 'keep' : parseCoords(attrVal));
     slideObj.data.geo.pin = pinData;
     if(typeof mapProvider.setPins == 'function') {
         mapProvider.setPins(pinData);
@@ -370,17 +421,19 @@ function setPin(attrVal, slideObj, event, radEventName) {
  * @private
  */
 function setSpeed(attrVal, slideObj, event, radEventName) {
-    var speed = 333;
-    if(speed == 'slow') {
-        speed = 1000;
-    } else if(speed == 'medium') {
-        speed = 333;
-    } else if(speed == 'fast') {
-        speed = 100;
+    var speed = 2000;
+    if(attrVal == 'slow') {
+        speed = 5000;
+    } else if(attrVal == 'medium') {
+        speed = 2000;
+    } else if(attrVal == 'fast') {
+        speed = 500;
+    } else if(attrVal == 'instant') {
+        speed = 0;
     } else {
-        speed = Number((attrVal.match(REGEX_DECIMAL) || [ '333' ])[0]);
+        speed = Number((attrVal.match(REGEX_DECIMAL) || [ '2000' ])[0]);
         if(isNaN(speed)) {
-            speed = 333;
+            speed = 2000;
         }
     } 
     slideObj.data.geo.speed = speed;
