@@ -24,10 +24,11 @@
  * @module geo
  */
 
-//Developer note: we are not using jsdox to generate any markdown for this file; the API doesn't really suit it.  
-//  Some JsDoc is still provided for developer use
+//Developer note: jsdoc is for reference only, we are not generating documentation from it.
 'use strict';
 var RadReveal = require('rad-reveal');
+
+var DECIMAL_REGEX = /(-)?(\d)*(\.)?(\d)*/;
 
 var mapProvider;
 var config;
@@ -36,6 +37,52 @@ var lastHidden;
 
 /*TODO FIX THIS REMOVE IT!*/require('./cesiumMapProvider.js');
 
+
+//utilities
+
+/**
+ * This function converts a simple comma seperated string with latitude and longitude, an optional label,
+ * and optional extensions into a regular coordinate object.  Multiple coordinates can be given seperated by
+ * semicolons.  Examples of valid input:
+ * 
+ * [] "40,116"
+ * [] "40,116,Beijing"
+ * [] "40,116,Beijing\,China" - The \, is used to escape the comma in the label
+ * [] "40,116,Beijing,GREEN" - When using cesiumMapProvider the 4th element GREEN is the color that will be used for the pin
+ * [] "39.9167° N, 116.3833° E" - Copied directly from google results of searching for "Beijing lat long"
+ * [] "33.4500° S, 70.6667° W, Santiago"
+ * [] "-33.45,-70.67" - Negative lat is South, negative lon is West
+ * [] "-33.45,-70.67,Santiago;-23.55,-46.63,São Paulo;-12.04,-77.03,Lima" - Using semicolons for multiple coords
+ *
+ * @private
+ */
+function parseCoords(value) {
+    var coords = [];
+    var valueSplit = value.split(';');
+    
+    valueSplit.forEach(function(item) {
+        item = item.replace('\\,', 'x002C'); 
+
+        var itemSplit = item.split(',');
+        var lat = Number(itemSplit[0].trim().match(DECIMAL_REGEX)[0]);
+        if(itemSplit[0].toUpperCase().indexOf('S') > -1) { lat = -1 * Math.abs(lat); }
+
+        var lon = Number(itemSplit[1].trim().match(DECIMAL_REGEX)[0]);
+        if(itemSplit[1].toUpperCase().indexOf('W') > -1) { lon = -1 * Math.abs(lon); }
+
+        var label = (itemSplit[2] || '').trim();
+        label = label.replace('x002C', ',');
+
+        var color = (itemSplit[3] || '').trim();
+
+        coords.push({ lat: lat, lon: lon, label: label, original: item, color: color });
+    });
+    
+    return coords;
+}
+
+
+//slide functionality
 
 /** 
  * Runs when RadReveal initializes.
@@ -57,7 +104,7 @@ function initialize(inputConfig, slides) {
         mapProvider = require('./protoMapProvider.js');
     }
 
-    mapProvider.initialize(config.mapProviderConfig);
+    mapProvider.initialize(config.mapProviderConfig, slides);
 
     /*if(config.fillSlides) {
         slides.forEach(function(slide) {
@@ -70,80 +117,53 @@ function initialize(inputConfig, slides) {
 
 
 /** 
- * Runs ...
+ * Initializes the slide object on load to add a `data.geo` object.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {object} ignored - not used
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function loadSlide(attrVal, slideObj, event, radEventName) {
+function loadSlide(ignored, slideObj) {
     slideObj.data.geo = { };
 }
 
+
 /** 
- * Runs ...
+ * Triggered by any `data-rad-geo*` attribute, this triggers the display of the map.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {object} ignored - not used
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function showDisplay(attrVal, slideObj, event, radEventName) {
+function showDisplay(ignored, slideObj) {
     if(slideObj == lastShown) { return; } //avoid repeats;
     lastShown = slideObj;
 
     mapProvider.show(slideObj);
 }
 
-function hideDisplay(attrVal, slideObj, event, radEventName) {
+/** 
+ * Triggered whenever leaving a slide that has rad-geo to go to a slide that does not have rad-geo.
+ * 
+ * @param {object} ignored - not used
+ * @param {object} slideObj - the RadReveal slide object
+ * @private
+ */
+function hideDisplay(ignored, slideObj) {
     if(slideObj == lastHidden) { return; } //avoid repeats;
     lastHidden = slideObj;
 
     mapProvider.hide(slideObj);
 }
 
-var REGEX_DECIMAL = /(-)?(\d)*(\.)?(\d)*/;
-
-//value is something like "47.7717° N, 122.2044° W" or "47,-122" or "47.7N,122.2W,Bothell" or "47.7N,122.2W,Bothell\,WA"
-// or a list of those seperated by Semicolons
-function parseCoords(value) {
-    var coords = [];
-    var valueSplit = value.split(';');
-    
-    valueSplit.forEach(function(item) {
-        item = item.replace('\\,', 'x002C'); 
-
-        var itemSplit = item.split(',');
-        var lat = Number(itemSplit[0].trim().match(REGEX_DECIMAL)[0]);
-        if(itemSplit[0].toUpperCase().indexOf('S') > -1) { lat = -1 * Math.abs(lat); }
-
-        var lon = Number(itemSplit[1].trim().match(REGEX_DECIMAL)[0]);
-        if(itemSplit[1].toUpperCase().indexOf('W') > -1) { lon = -1 * Math.abs(lon); }
-
-        var label = (itemSplit[2] || '').trim();
-        label = label.replace('x002C', ',');
-
-        var color = (itemSplit[3] || '').trim();
-
-        coords.push({ lat: lat, lon: lon, label: label, original: item, color: color });
-    });
-    
-    return coords;
-}
-
 /** 
- * Runs ...
+ * Triggered by the `data-rad-geo-goto` attribute, this sets the map goto to be used.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {string} attrVal - goto to use
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function setGoto(attrVal, slideObj, event, radEventName) {
+function setGoto(attrVal, slideObj) {
     var gotoData = (attrVal == 'pin' ? 'pin' : parseCoords(attrVal));
     slideObj.data.geo['goto'] = gotoData;
     if(typeof mapProvider.setGoto == 'function') {
@@ -152,15 +172,13 @@ function setGoto(attrVal, slideObj, event, radEventName) {
 }
 
 /** 
- * Runs ...
+ * Triggered by the `data-rad-geo-pin` attribute, this sets the map pin to be used.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {string} attrVal - pin to use
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function setPin(attrVal, slideObj, event, radEventName) {
+function setPin(attrVal, slideObj) {
     var pinData = (attrVal == 'keep' ? 'keep' : parseCoords(attrVal));
     slideObj.data.geo.pin = pinData;
     if(typeof mapProvider.setPins == 'function') {
@@ -169,15 +187,13 @@ function setPin(attrVal, slideObj, event, radEventName) {
 }
 
 /** 
- * Runs ...
+ * Triggered by the `data-rad-geo-speed` attribute, this sets the map speed to be used.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {string} attrVal - speed to use
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function setSpeed(attrVal, slideObj, event, radEventName) {
+function setSpeed(attrVal, slideObj) {
     var speed = 2000;
     if(attrVal == 'slow') {
         speed = 5000;
@@ -188,7 +204,7 @@ function setSpeed(attrVal, slideObj, event, radEventName) {
     } else if(attrVal == 'instant') {
         speed = 0;
     } else {
-        speed = Number((attrVal.match(REGEX_DECIMAL) || [ '2000' ])[0]);
+        speed = Number((attrVal.match(DECIMAL_REGEX) || [ '2000' ])[0]);
         if(isNaN(speed)) {
             speed = 2000;
         }
@@ -199,16 +215,16 @@ function setSpeed(attrVal, slideObj, event, radEventName) {
     }
 }
 
+
+
 /** 
- * Runs ...
+ * Triggered by the `data-rad-geo-zoom` attribute, this sets the map zoom to be used.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {string} attrVal - zoom to use
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function setZoom(attrVal, slideObj, event, radEventName) {
+function setZoom(attrVal, slideObj) {
     slideObj.data.geo.zoom = attrVal;
     if(typeof mapProvider.setZoom == 'function') {
         mapProvider.setZoom(attrVal);
@@ -216,15 +232,13 @@ function setZoom(attrVal, slideObj, event, radEventName) {
 }
 
 /** 
- * Runs ...
+ * Triggered by the `data-rad-geo-style` attribute, this sets the map style to be used.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {string} attrVal - style to use
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function setStyle(attrVal, slideObj, event, radEventName) {
+function setStyle(attrVal, slideObj) {
     slideObj.data.geo.style = attrVal;
     if(typeof mapProvider.setStyle == 'function') {
         mapProvider.setStyle(attrVal);
@@ -233,7 +247,7 @@ function setStyle(attrVal, slideObj, event, radEventName) {
 
 RadReveal.register('geo', initialize);
 
-//TODO: need a * or need array on
+
 RadReveal.on('data-rad-geo*', 'load', loadSlide);
 
 RadReveal.on('data-rad-geo*', 'hide', hideDisplay);

@@ -15,23 +15,23 @@ if(typeof Cesium == 'undefined') {
     head.js('node_modules/cesiumjs/Build/Cesium/Cesium.js'); //todo: how to do this right?
 }
 
-function initialize(config) {
+function initialize(config, slides) {
     ele = document.createElement('div');
     ele.className = 'rad-geo-container';
     ele.style.backgroundColor = 'black';
     ele.id = 'rad-geo-cesiumjs-container'
     document.body.appendChild(ele);
-    runOnceCesium(10, config); 
+    runOnceCesium(10, config, slides); 
 }
 
 //TODO: best way?
-function runOnceCesium(count, config) {
+function runOnceCesium(count, config, slides) {
     if(typeof Cesium == 'undefined') {
         if(count <= 0) {
             alert('Cesium could not be loaded?');
             return;
         } else {
-            return setTimeout(function() { runOnceCesium(count--, config); }, 100);
+            return setTimeout(function() { runOnceCesium(count--, config, slides); }, 100);
         }
     }
 
@@ -62,6 +62,36 @@ function runOnceCesium(count, config) {
             options.imageryProvider = config.imageryProvider;
         }
     */}
+
+   /* wait for https://groups.google.com/forum/#!topic/cesium-dev/VeLx_HaKM_A
+
+    if(slides) {
+        var slideObj = null; //first geo slide
+        for(var si = 0; si < slides.length; si++) {
+            if(slides[si].data.geo) {
+                slideObj = slides[si];
+                break;
+            }
+        }
+        var gotoData = slideObj.data.geo['goto'];
+        var pinData = slideObj.data.geo.pin;
+        var zoomData = slideObj.data.geo.zoom;
+        var destination;
+        if(gotoData == 'pin' && pinData) { 
+            Cesium.Camera.DEFAULT_VIEW_RECTANGLE = getDestinationFromCoords(pinData, 1000000);
+            Cesium.Camera.DEFAULT_VIEW_FACTOR = 0;
+        } else if(gotoData) {
+            Cesium.Camera.DEFAULT_VIEW_RECTANGLE = getDestinationFromCoords(gotoData, 1000000);
+            Cesium.Camera.DEFAULT_VIEW_FACTOR = 0;
+        } 
+        console.log(Cesium.Camera.DEFAULT_VIEW_RECTANGLE);
+        slideObj.data.geo = {};
+
+        if(zoomData) {
+
+        }
+
+    }*/
 
     viewer = new Cesium.Viewer(ele.id, options);
     document.querySelector('.cesium-infoBox-iframe').setAttribute('sandbox', 'allow-same-origin allow-popups allow-forms allow-scripts');
@@ -94,11 +124,8 @@ function show(slideObj) {
     }
 
     if(pinData) {
-        console.log('pin');
-        console.log(pinData);
         doPin(pinData);
     } else {
-        console.log('clear');
         clearPins();
     }
 
@@ -232,27 +259,34 @@ function doGoto(gotoData, zoomData, speedData) {
         throw new Error('we don\'t yet support goto=pins pins=keep');
     }
 
-    var heightMeters = Number(zoomData);
+    var zoomNumber = Number(zoomData);
     var zoomDefaulted = (typeof zoomData == 'undefined');
-    if(zoomDefaulted || isNaN(heightMeters)) {
-        heightMeters = 1000000; //TODO: s/be config
+    if(zoomDefaulted || isNaN(zoomNumber)) {
+        zoomNumber = 6; //TODO: s/be config
         zoomDefaulted = true;
     }
+
+    var heightMeters = Math.pow(10, Math.abs(zoomNumber));
 
     var speedMs = Number(speedData);
     if((typeof speedData == 'undefined') || isNaN(speedMs)) {
         speedMs = 2000; //TODO: s/be config
     }
 
-    var destination;
+    var destination = getDestinationFromCoords(gotoData, heightMeters);
+    
+    viewer.camera.flyTo({ destination: destination, duration: speedMs / 1000 });
+} 
 
-    if(gotoData.length == 0) {
+function getDestinationFromCoords(coords, heightMeters) {
+    var destination;
+    if(coords.length == 0) {
         var center = viewer.camera.positionCartographic;
         destination = Cesium.Cartesian3.fromRadians(center.longitude, center.latitude, heightMeters);
-    } else if(gotoData.length == 1) {
-        destination = Cesium.Cartesian3.fromDegrees(gotoData[0].lon, gotoData[0].lat, heightMeters);
+    } else if(coords.length == 1) {
+        destination = Cesium.Cartesian3.fromDegrees(coords[0].lon, coords[0].lat, heightMeters);
     } else {
-        var cartos = gotoData.map(function(coord) {
+        var cartos = coords.map(function(coord) {
             return new Cesium.Cartographic.fromDegrees(coord.lon, coord.lat, heightMeters);
         });
         var rectangle = Cesium.Rectangle.fromCartographicArray(cartos);
@@ -265,37 +299,8 @@ function doGoto(gotoData, zoomData, speedData) {
 
         destination = Cesium.Cartesian3.fromRadians(center.longitude, center.latitude, heightMeters);
     }
-    
-    viewer.camera.flyTo({ destination: destination, duration: speedMs / 1000 });
-} 
-
-function doZoom(zoom) {
-    zoom = Number(zoom);
-    if(isNaN(zoom)) {
-        console.log('invalid zoom ' + zoom);
-        return;
-    } 
-    var zoomMeters = Math.pow(10, Math.abs(zoom));
-    
-/*
-        viewer.camera.flyTo({ 
-            destination: rectangle,
-    if(zoom < 0) {
-        viewer.camera.zoomOut(zoomMeters);
-    } else {
-        viewer.camera.zoomIn(zoomMeters);
-    }*/ 
+    return destination;
 }
-
-var messageCount = 0;
-var messages = [];
-
-function proto(name) {
-    return function(options) {
-        console.log(JSON.stringify([name, options]));
-    }
-}
-
 
 module.exports = {
     initialize: initialize,

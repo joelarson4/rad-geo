@@ -16,23 +16,23 @@ if(typeof Cesium == 'undefined') {
     head.js('node_modules/cesiumjs/Build/Cesium/Cesium.js'); //todo: how to do this right?
 }
 
-function initialize(config) {
+function initialize(config, slides) {
     ele = document.createElement('div');
     ele.className = 'rad-geo-container';
     ele.style.backgroundColor = 'black';
     ele.id = 'rad-geo-cesiumjs-container'
     document.body.appendChild(ele);
-    runOnceCesium(10, config); 
+    runOnceCesium(10, config, slides); 
 }
 
 //TODO: best way?
-function runOnceCesium(count, config) {
+function runOnceCesium(count, config, slides) {
     if(typeof Cesium == 'undefined') {
         if(count <= 0) {
             alert('Cesium could not be loaded?');
             return;
         } else {
-            return setTimeout(function() { runOnceCesium(count--, config); }, 100);
+            return setTimeout(function() { runOnceCesium(count--, config, slides); }, 100);
         }
     }
 
@@ -63,6 +63,36 @@ function runOnceCesium(count, config) {
             options.imageryProvider = config.imageryProvider;
         }
     */}
+
+   /* wait for https://groups.google.com/forum/#!topic/cesium-dev/VeLx_HaKM_A
+
+    if(slides) {
+        var slideObj = null; //first geo slide
+        for(var si = 0; si < slides.length; si++) {
+            if(slides[si].data.geo) {
+                slideObj = slides[si];
+                break;
+            }
+        }
+        var gotoData = slideObj.data.geo['goto'];
+        var pinData = slideObj.data.geo.pin;
+        var zoomData = slideObj.data.geo.zoom;
+        var destination;
+        if(gotoData == 'pin' && pinData) { 
+            Cesium.Camera.DEFAULT_VIEW_RECTANGLE = getDestinationFromCoords(pinData, 1000000);
+            Cesium.Camera.DEFAULT_VIEW_FACTOR = 0;
+        } else if(gotoData) {
+            Cesium.Camera.DEFAULT_VIEW_RECTANGLE = getDestinationFromCoords(gotoData, 1000000);
+            Cesium.Camera.DEFAULT_VIEW_FACTOR = 0;
+        } 
+        console.log(Cesium.Camera.DEFAULT_VIEW_RECTANGLE);
+        slideObj.data.geo = {};
+
+        if(zoomData) {
+
+        }
+
+    }*/
 
     viewer = new Cesium.Viewer(ele.id, options);
     document.querySelector('.cesium-infoBox-iframe').setAttribute('sandbox', 'allow-same-origin allow-popups allow-forms allow-scripts');
@@ -95,11 +125,8 @@ function show(slideObj) {
     }
 
     if(pinData) {
-        console.log('pin');
-        console.log(pinData);
         doPin(pinData);
     } else {
-        console.log('clear');
         clearPins();
     }
 
@@ -233,27 +260,34 @@ function doGoto(gotoData, zoomData, speedData) {
         throw new Error('we don\'t yet support goto=pins pins=keep');
     }
 
-    var heightMeters = Number(zoomData);
+    var zoomNumber = Number(zoomData);
     var zoomDefaulted = (typeof zoomData == 'undefined');
-    if(zoomDefaulted || isNaN(heightMeters)) {
-        heightMeters = 1000000; //TODO: s/be config
+    if(zoomDefaulted || isNaN(zoomNumber)) {
+        zoomNumber = 6; //TODO: s/be config
         zoomDefaulted = true;
     }
+
+    var heightMeters = Math.pow(10, Math.abs(zoomNumber));
 
     var speedMs = Number(speedData);
     if((typeof speedData == 'undefined') || isNaN(speedMs)) {
         speedMs = 2000; //TODO: s/be config
     }
 
-    var destination;
+    var destination = getDestinationFromCoords(gotoData, heightMeters);
+    
+    viewer.camera.flyTo({ destination: destination, duration: speedMs / 1000 });
+} 
 
-    if(gotoData.length == 0) {
+function getDestinationFromCoords(coords, heightMeters) {
+    var destination;
+    if(coords.length == 0) {
         var center = viewer.camera.positionCartographic;
         destination = Cesium.Cartesian3.fromRadians(center.longitude, center.latitude, heightMeters);
-    } else if(gotoData.length == 1) {
-        destination = Cesium.Cartesian3.fromDegrees(gotoData[0].lon, gotoData[0].lat, heightMeters);
+    } else if(coords.length == 1) {
+        destination = Cesium.Cartesian3.fromDegrees(coords[0].lon, coords[0].lat, heightMeters);
     } else {
-        var cartos = gotoData.map(function(coord) {
+        var cartos = coords.map(function(coord) {
             return new Cesium.Cartographic.fromDegrees(coord.lon, coord.lat, heightMeters);
         });
         var rectangle = Cesium.Rectangle.fromCartographicArray(cartos);
@@ -266,37 +300,8 @@ function doGoto(gotoData, zoomData, speedData) {
 
         destination = Cesium.Cartesian3.fromRadians(center.longitude, center.latitude, heightMeters);
     }
-    
-    viewer.camera.flyTo({ destination: destination, duration: speedMs / 1000 });
-} 
-
-function doZoom(zoom) {
-    zoom = Number(zoom);
-    if(isNaN(zoom)) {
-        console.log('invalid zoom ' + zoom);
-        return;
-    } 
-    var zoomMeters = Math.pow(10, Math.abs(zoom));
-    
-/*
-        viewer.camera.flyTo({ 
-            destination: rectangle,
-    if(zoom < 0) {
-        viewer.camera.zoomOut(zoomMeters);
-    } else {
-        viewer.camera.zoomIn(zoomMeters);
-    }*/ 
+    return destination;
 }
-
-var messageCount = 0;
-var messages = [];
-
-function proto(name) {
-    return function(options) {
-        console.log(JSON.stringify([name, options]));
-    }
-}
-
 
 module.exports = {
     initialize: initialize,
@@ -330,10 +335,11 @@ module.exports = {
  * @module geo
  */
 
-//Developer note: we are not using jsdox to generate any markdown for this file; the API doesn't really suit it.  
-//  Some JsDoc is still provided for developer use
+//Developer note: jsdoc is for reference only, we are not generating documentation from it.
 'use strict';
 var RadReveal = require('rad-reveal');
+
+var DECIMAL_REGEX = /(-)?(\d)*(\.)?(\d)*/;
 
 var mapProvider;
 var config;
@@ -342,6 +348,52 @@ var lastHidden;
 
 /*TODO FIX THIS REMOVE IT!*/require('./cesiumMapProvider.js');
 
+
+//utilities
+
+/**
+ * This function converts a simple comma seperated string with latitude and longitude, an optional label,
+ * and optional extensions into a regular coordinate object.  Multiple coordinates can be given seperated by
+ * semicolons.  Examples of valid input:
+ * 
+ * [] "40,116"
+ * [] "40,116,Beijing"
+ * [] "40,116,Beijing\,China" - The \, is used to escape the comma in the label
+ * [] "40,116,Beijing,GREEN" - When using cesiumMapProvider the 4th element GREEN is the color that will be used for the pin
+ * [] "39.9167° N, 116.3833° E" - Copied directly from google results of searching for "Beijing lat long"
+ * [] "33.4500° S, 70.6667° W, Santiago"
+ * [] "-33.45,-70.67" - Negative lat is South, negative lon is West
+ * [] "-33.45,-70.67,Santiago;-23.55,-46.63,São Paulo;-12.04,-77.03,Lima" - Using semicolons for multiple coords
+ *
+ * @private
+ */
+function parseCoords(value) {
+    var coords = [];
+    var valueSplit = value.split(';');
+    
+    valueSplit.forEach(function(item) {
+        item = item.replace('\\,', 'x002C'); 
+
+        var itemSplit = item.split(',');
+        var lat = Number(itemSplit[0].trim().match(DECIMAL_REGEX)[0]);
+        if(itemSplit[0].toUpperCase().indexOf('S') > -1) { lat = -1 * Math.abs(lat); }
+
+        var lon = Number(itemSplit[1].trim().match(DECIMAL_REGEX)[0]);
+        if(itemSplit[1].toUpperCase().indexOf('W') > -1) { lon = -1 * Math.abs(lon); }
+
+        var label = (itemSplit[2] || '').trim();
+        label = label.replace('x002C', ',');
+
+        var color = (itemSplit[3] || '').trim();
+
+        coords.push({ lat: lat, lon: lon, label: label, original: item, color: color });
+    });
+    
+    return coords;
+}
+
+
+//slide functionality
 
 /** 
  * Runs when RadReveal initializes.
@@ -363,7 +415,7 @@ function initialize(inputConfig, slides) {
         mapProvider = require('./protoMapProvider.js');
     }
 
-    mapProvider.initialize(config.mapProviderConfig);
+    mapProvider.initialize(config.mapProviderConfig, slides);
 
     /*if(config.fillSlides) {
         slides.forEach(function(slide) {
@@ -376,80 +428,53 @@ function initialize(inputConfig, slides) {
 
 
 /** 
- * Runs ...
+ * Initializes the slide object on load to add a `data.geo` object.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {object} ignored - not used
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function loadSlide(attrVal, slideObj, event, radEventName) {
+function loadSlide(ignored, slideObj) {
     slideObj.data.geo = { };
 }
 
+
 /** 
- * Runs ...
+ * Triggered by any `data-rad-geo*` attribute, this triggers the display of the map.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {object} ignored - not used
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function showDisplay(attrVal, slideObj, event, radEventName) {
+function showDisplay(ignored, slideObj) {
     if(slideObj == lastShown) { return; } //avoid repeats;
     lastShown = slideObj;
 
     mapProvider.show(slideObj);
 }
 
-function hideDisplay(attrVal, slideObj, event, radEventName) {
+/** 
+ * Triggered whenever leaving a slide that has rad-geo to go to a slide that does not have rad-geo.
+ * 
+ * @param {object} ignored - not used
+ * @param {object} slideObj - the RadReveal slide object
+ * @private
+ */
+function hideDisplay(ignored, slideObj) {
     if(slideObj == lastHidden) { return; } //avoid repeats;
     lastHidden = slideObj;
 
     mapProvider.hide(slideObj);
 }
 
-var REGEX_DECIMAL = /(-)?(\d)*(\.)?(\d)*/;
-
-//value is something like "47.7717° N, 122.2044° W" or "47,-122" or "47.7N,122.2W,Bothell" or "47.7N,122.2W,Bothell\,WA"
-// or a list of those seperated by Semicolons
-function parseCoords(value) {
-    var coords = [];
-    var valueSplit = value.split(';');
-    
-    valueSplit.forEach(function(item) {
-        item = item.replace('\\,', 'x002C'); 
-
-        var itemSplit = item.split(',');
-        var lat = Number(itemSplit[0].trim().match(REGEX_DECIMAL)[0]);
-        if(itemSplit[0].toUpperCase().indexOf('S') > -1) { lat = -1 * Math.abs(lat); }
-
-        var lon = Number(itemSplit[1].trim().match(REGEX_DECIMAL)[0]);
-        if(itemSplit[1].toUpperCase().indexOf('W') > -1) { lon = -1 * Math.abs(lon); }
-
-        var label = (itemSplit[2] || '').trim();
-        label = label.replace('x002C', ',');
-
-        var color = (itemSplit[3] || '').trim();
-
-        coords.push({ lat: lat, lon: lon, label: label, original: item, color: color });
-    });
-    
-    return coords;
-}
-
 /** 
- * Runs ...
+ * Triggered by the `data-rad-geo-goto` attribute, this sets the map goto to be used.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {string} attrVal - goto to use
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function setGoto(attrVal, slideObj, event, radEventName) {
+function setGoto(attrVal, slideObj) {
     var gotoData = (attrVal == 'pin' ? 'pin' : parseCoords(attrVal));
     slideObj.data.geo['goto'] = gotoData;
     if(typeof mapProvider.setGoto == 'function') {
@@ -458,15 +483,13 @@ function setGoto(attrVal, slideObj, event, radEventName) {
 }
 
 /** 
- * Runs ...
+ * Triggered by the `data-rad-geo-pin` attribute, this sets the map pin to be used.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {string} attrVal - pin to use
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function setPin(attrVal, slideObj, event, radEventName) {
+function setPin(attrVal, slideObj) {
     var pinData = (attrVal == 'keep' ? 'keep' : parseCoords(attrVal));
     slideObj.data.geo.pin = pinData;
     if(typeof mapProvider.setPins == 'function') {
@@ -475,15 +498,13 @@ function setPin(attrVal, slideObj, event, radEventName) {
 }
 
 /** 
- * Runs ...
+ * Triggered by the `data-rad-geo-speed` attribute, this sets the map speed to be used.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {string} attrVal - speed to use
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function setSpeed(attrVal, slideObj, event, radEventName) {
+function setSpeed(attrVal, slideObj) {
     var speed = 2000;
     if(attrVal == 'slow') {
         speed = 5000;
@@ -494,7 +515,7 @@ function setSpeed(attrVal, slideObj, event, radEventName) {
     } else if(attrVal == 'instant') {
         speed = 0;
     } else {
-        speed = Number((attrVal.match(REGEX_DECIMAL) || [ '2000' ])[0]);
+        speed = Number((attrVal.match(DECIMAL_REGEX) || [ '2000' ])[0]);
         if(isNaN(speed)) {
             speed = 2000;
         }
@@ -505,16 +526,16 @@ function setSpeed(attrVal, slideObj, event, radEventName) {
     }
 }
 
+
+
 /** 
- * Runs ...
+ * Triggered by the `data-rad-geo-zoom` attribute, this sets the map zoom to be used.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {string} attrVal - zoom to use
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function setZoom(attrVal, slideObj, event, radEventName) {
+function setZoom(attrVal, slideObj) {
     slideObj.data.geo.zoom = attrVal;
     if(typeof mapProvider.setZoom == 'function') {
         mapProvider.setZoom(attrVal);
@@ -522,15 +543,13 @@ function setZoom(attrVal, slideObj, event, radEventName) {
 }
 
 /** 
- * Runs ...
+ * Triggered by the `data-rad-geo-style` attribute, this sets the map style to be used.
  *
- * @param {string} attrVal - value of the attribute
- * @param {object} slideObj - the RadReveal slide object (see RadReveal documentation)
- * @param {object} event - the Reveal.js event
- * @param {string} radEventName - the name of the RadReveal event (see RadReveal documentation)
+ * @param {string} attrVal - style to use
+ * @param {object} slideObj - the RadReveal slide object
  * @private
  */
-function setStyle(attrVal, slideObj, event, radEventName) {
+function setStyle(attrVal, slideObj) {
     slideObj.data.geo.style = attrVal;
     if(typeof mapProvider.setStyle == 'function') {
         mapProvider.setStyle(attrVal);
@@ -539,7 +558,7 @@ function setStyle(attrVal, slideObj, event, radEventName) {
 
 RadReveal.register('geo', initialize);
 
-//TODO: need a * or need array on
+
 RadReveal.on('data-rad-geo*', 'load', loadSlide);
 
 RadReveal.on('data-rad-geo*', 'hide', hideDisplay);
