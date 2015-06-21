@@ -96,6 +96,8 @@ function runOnceCesium(count, config, slides) {
 
     viewer = new Cesium.Viewer(ele.id, options);
     document.querySelector('.cesium-infoBox-iframe').setAttribute('sandbox', 'allow-same-origin allow-popups allow-forms allow-scripts');
+
+
 }
 
 function show(slideObj) {
@@ -108,6 +110,7 @@ function show(slideObj) {
 
     var gotoData = slideObj.data.geo['goto'];
     var pinData = slideObj.data.geo.pin;
+    var kmlData = slideObj.data.geo.kml;
     var zoomData = slideObj.data.geo.zoom;
     var speedData = slideObj.data.geo.speed;
     var styleData = slideObj.data.geo.style;
@@ -128,6 +131,10 @@ function show(slideObj) {
         doPin(pinData);
     } else {
         clearPins();
+    }
+
+    if(kmlData) {
+        doKml(kmlData);
     }
 
     //TODO: need animated opacity
@@ -278,6 +285,10 @@ function doGoto(gotoData, zoomData, speedData) {
     
     viewer.camera.flyTo({ destination: destination, duration: speedMs / 1000 });
 } 
+
+function doKml(kmlData) {
+    viewer.dataSources.add(Cesium.KmlDataSource.load(kmlData));
+}
 
 function getDestinationFromCoords(coords, heightMeters) {
     var destination;
@@ -483,6 +494,20 @@ function setGoto(attrVal, slideObj) {
 }
 
 /** 
+ * Triggered by the `data-rad-geo-kml` attribute, this sets the kml to be used.
+ *
+ * @param {string} attrVal - kml to use
+ * @param {object} slideObj - the RadReveal slide object
+ * @private
+ */
+function setKml(attrVal, slideObj) {
+    slideObj.data.geo.kml = attrVal;
+    if(typeof mapProvider.setKml == 'function') {
+        mapProvider.setKml(attrVal);
+    }
+}
+
+/** 
  * Triggered by the `data-rad-geo-pin` attribute, this sets the map pin to be used.
  *
  * @param {string} attrVal - pin to use
@@ -568,6 +593,7 @@ RadReveal.on('data-rad-geo-pin', 'show', setPin);
 RadReveal.on('data-rad-geo-speed', 'show', setSpeed);
 RadReveal.on('data-rad-geo-zoom', 'show', setZoom);
 RadReveal.on('data-rad-geo-style', 'show', setStyle);
+RadReveal.on('data-rad-geo-kml', 'show', setKml);
 
 RadReveal.on('data-rad-geo*', 'show', showDisplay);
 

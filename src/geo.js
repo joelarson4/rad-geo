@@ -172,6 +172,20 @@ function setGoto(attrVal, slideObj) {
 }
 
 /** 
+ * Triggered by the `data-rad-geo-kml` attribute, this sets the kml to be used.
+ *
+ * @param {string} attrVal - kml to use
+ * @param {object} slideObj - the RadReveal slide object
+ * @private
+ */
+function setKml(attrVal, slideObj) {
+    slideObj.data.geo.kml = attrVal;
+    if(typeof mapProvider.setKml == 'function') {
+        mapProvider.setKml(attrVal);
+    }
+}
+
+/** 
  * Triggered by the `data-rad-geo-pin` attribute, this sets the map pin to be used.
  *
  * @param {string} attrVal - pin to use
@@ -257,6 +271,7 @@ RadReveal.on('data-rad-geo-pin', 'show', setPin);
 RadReveal.on('data-rad-geo-speed', 'show', setSpeed);
 RadReveal.on('data-rad-geo-zoom', 'show', setZoom);
 RadReveal.on('data-rad-geo-style', 'show', setStyle);
+RadReveal.on('data-rad-geo-kml', 'show', setKml);
 
 RadReveal.on('data-rad-geo*', 'show', showDisplay);
 

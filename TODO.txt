@@ -1,5 +1,9 @@
 [x] how to change map style?
 [x] how to change from globe to flat and vice verse?
+[x] kml support
+[x] kmz support
+[] way to give function control of everything
+[] callbacks?
 [] wait for kerning fix
 [] wait for flyTo fix
 [] code cleanup

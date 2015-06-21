@@ -95,6 +95,8 @@ function runOnceCesium(count, config, slides) {
 
     viewer = new Cesium.Viewer(ele.id, options);
     document.querySelector('.cesium-infoBox-iframe').setAttribute('sandbox', 'allow-same-origin allow-popups allow-forms allow-scripts');
+
+
 }
 
 function show(slideObj) {
@@ -107,6 +109,7 @@ function show(slideObj) {
 
     var gotoData = slideObj.data.geo['goto'];
     var pinData = slideObj.data.geo.pin;
+    var kmlData = slideObj.data.geo.kml;
     var zoomData = slideObj.data.geo.zoom;
     var speedData = slideObj.data.geo.speed;
     var styleData = slideObj.data.geo.style;
@@ -127,6 +130,10 @@ function show(slideObj) {
         doPin(pinData);
     } else {
         clearPins();
+    }
+
+    if(kmlData) {
+        doKml(kmlData);
     }
 
     //TODO: need animated opacity
@@ -277,6 +284,10 @@ function doGoto(gotoData, zoomData, speedData) {
     
     viewer.camera.flyTo({ destination: destination, duration: speedMs / 1000 });
 } 
+
+function doKml(kmlData) {
+    viewer.dataSources.add(Cesium.KmlDataSource.load(kmlData));
+}
 
 function getDestinationFromCoords(coords, heightMeters) {
     var destination;
