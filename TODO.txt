@@ -2,6 +2,8 @@
 [x] how to change from globe to flat and vice verse?
 [x] kml support
 [x] kmz support
+[] seems like going 2D/3D loses zoom and position, can we fix that?
+[] need dark and light text styles and for map-styles to switch those
 [] way to give function control of everything
 [] callbacks?
 [] wait for kerning fix

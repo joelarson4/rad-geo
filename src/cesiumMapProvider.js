@@ -280,7 +280,7 @@ function doGoto(gotoData, zoomData, speedData) {
         speedMs = 2000; //TODO: s/be config
     }
 
-    var destination = getDestinationFromCoords(gotoData, heightMeters);
+    var destination = getDestinationFromCoords(gotoData, heightMeters, zoomDefaulted);
     
     viewer.camera.flyTo({ destination: destination, duration: speedMs / 1000 });
 } 
@@ -289,7 +289,7 @@ function doKml(kmlData) {
     viewer.dataSources.add(Cesium.KmlDataSource.load(kmlData));
 }
 
-function getDestinationFromCoords(coords, heightMeters) {
+function getDestinationFromCoords(coords, heightMeters, zoomDefaulted) {
     var destination;
     if(coords.length == 0) {
         var center = viewer.camera.positionCartographic;

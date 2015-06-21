@@ -29,54 +29,129 @@
     <p><a href="https://github.com/joelarson4/rad-geo">check it out on github!</a></p>
 </section>
 
-<section data-rad-geo-style="SCENE3D_BING_ROAD">
+<section data-rad-geo>
     <h2>What does it do?</h2>
     <p><strong>rad-geo</strong> helps you display maps in your presentations.</p>
 </section>
 
-<section data-rad-geo-style="SCENE3D_NASA_BLACKMARBLE">
+<section data-rad-geo>
     <h2>Why would you want to?</h2>
     <p>Maps are visually interesting and can add depth to your talk if anything geographic is involved.</p>
 </section>
 
-<section data-rad-geo-style="SCENE2D_NASA_BLACKMARBLE">
+<section data-rad-geo>
     <h2>How do you use it?</h2>
-    <p>Just ...</p>
+    <p>Just install it and add <code>data-rad-geo-*</code> attributes to your slides.</p>
 </section>
 
-<section data-rad-geo-goto="31.2000° N, 121.5000° E" data-rad-geo-style="SCENE3D_BING_AERIAL">
-    <h2>Shanghai</h2>
-    <p>lat lon from google</p>
+<section data-rad-geo-goto="31.2, 121.5">
+    <h2>How can you show a specific location?</h2>
+    <p>By using the <code>data-rad-geo-goto</code> attribute:</p>
+    <pre><code>
+ &lt;section data-rad-geo-goto="31.2, 121.5"&gt;
+    </code></pre>
 </section>
 
-<section data-rad-geo-pin="24.8600° N, 67.0100° E, Karachi\, Pakistan" data-rad-geo-goto="pin">
-    <h2>Karachi</h2>
-    <p>lat lon from google w/ pin</p>
+<section data-rad-geo-pin="31.2, 121.5, Shanghai\, China " data-rad-geo-goto="pin">
+    <h2>Can you show a location pin?</h2>
+    <p>Just use the <code>data-rad-geo-pin</code> attribute:</p>
+    <br><br><br><br><br><br>
+    <pre><code>
+ &lt;section data-rad-geo-pin="31.2, 121.5, Shanghai\, China" 
+   data-rad-geo-goto="pin"&gt;
+    </code></pre>
 </section>
 
-<section data-rad-geo-speed="slow" data-rad-geo-goto="pin" 
-    data-rad-geo-pin="47.7717° N, 122.2044° W, Bothell\, WA, BLUE/BLUE; 47.9511° N, 124.3847° W, Forks\, WA; 48.9972° N, 122.2656° W, Sumas\, WA">
-    list of lat lon from google
+<section data-rad-geo-goto="pin"
+    data-rad-geo-pin="
+    6.4531° N, 3.3958° E, Lagos\, Nigeria;
+    30.0500° N, 31.2333° E, Cairo\, Egypt;
+    4.3250° S, 15.3222° E, Kinshasa\, DR Congo"
+    data-rad-geo-zoom="7.2">
+    <h2>Can you show multiple locations?</h2>
+    <br><br><br><br><br><br><br><br>
+    <p>Use <code>data-rad-geo-pin</code> and seperate locations with a semicolon.</p>
 </section>
 
-<section data-rad-geo-zoom="6" data-rad-geo-speed="222ms" data-rad-geo-goto="pin" 
-    data-rad-geo-pin="47.7717° N, 122.2044° W, Bothell\, WA, BLUE/BLUE; 47.9511° N, 124.3847° W, Forks\, WA; 48.9972° N, 122.2656° W, Sumas\, WA">
-    list of lat lon from google
+<section data-rad-geo-zoom="6.8">
+    <h2>What if you want to zoom in or out?</h2>
+    <p>You can set the <code>data-rad-geo-zoom</code> attribute.</p>
+    <pre><code>
+ &lt;section data-rad-geo-zoom="6.8"&gt;
+    </code></pre>
 </section>
 
-
-<section data-rad-geo-zoom="6.3">
-    zoom to level 330k
+<section data-rad-geo-zoom="6" data-rad-geo-speed="300">
+    <h2>What if you want to move faster or slower?</h2>
+    <p>You can control transition speed by setting the <code>data-rad-geo-speed</code> attribute to a number of milliseconds.</p>
+    <pre><code>
+ &lt;section data-rad-geo-zoom="6" data-rad-geo-speed="300"&gt;
+    </code></pre>
 </section>
 
-<section data-rad-geo-zoom="5.3">
-    zoom to level 33k
+<section data-rad-geo-zoom="6.8" data-rad-geo-speed="3000">
+    <h2>What if you want to move faster or slower?</h2>
+    <p>You can control transition speed by setting the <code>data-rad-geo-speed</code> attribute to a number of milliseconds.</p>
+    <pre><code>
+ &lt;section data-rad-geo-zoom="6" data-rad-geo-speed="3000"&gt;
+    </code></pre>
+</section>
+
+<section data-rad-geo-style="SCENE3D_NASA_BLACKMARBLE">
+    <h2>Can you use different map styles?</h2>
+    <p>You can select different styles using the<br><code>data-rad-geo-style</code> attribute.</p>
+    <pre><code>
+ &lt;section data-rad-geo-style="SCENE3D_NASA_BLACKMARBLE"&gt;
+    </code></pre>
+</section>
+
+<section data-rad-geo-style="SCENE2D_NASA_BLACKMARBLE">
+    <h2>Can you use a 2D map instead of a 3D globe?</h2>
+    <p>With the Cesium map provider (more on that later) you can use 3D, 2D or "Columbus" modes.</p>
+    <pre><code>
+ &lt;section data-rad-geo-style="SCENE2D_NASA_BLACKMARBLE"&gt;
+    </code></pre>
+</section>
+
+<section data-rad-geo-style="SCENE3D_BING_ROAD">
+    <h2>What map styles are available?</h2>
+    <p>With the Cesium map provider there are quite a few.  Find out more in <a href="https://github.com/joelarson4/rad-geo">the documentation.</a></p>
+</section>
+
+<section data-rad-geo>
+    <h2>What is the "Cesium map provider"?</h2>
+    <p><a href="https://cesiumjs.org" target="_blank">Cesium</a> is the default map rendering library for <code>rad-geo</code>, and it is integrated into <code>rad-geo</code> as the "Cesium map provider".</p>
+    <p>In the future more map providers might be integrated.</p>
 </section>
 
 <section>
-    <h2>No geo</h2>
-    <p>Just ...</p>
+    <h2>What if I want a slide without a map?</h2>
+    <p>Any slides without a <code>data-rad-geo*</code> attribute will appear without a map.</p>
 </section>
+
+<section data-rad-geo>
+    <h2>What if I want a slide without a map?</h2>
+    <p>Any slides without a <code>data-rad-geo*</code> attribute will appear without a map.</p>
+    <p>Then just adding that attribute on the next slide brings the map back.</p>
+</section>
+
+<section data-rad-geo-kml="kml/Mesopotamia.kml" data-rad-geo-goto="33.7000° N, 43.5000° E" data-rad-geo-zoom="6.2">
+    <h2>Can I display kml?</h2>
+    <p>You can select display <code>kml</code> files with <code>data-rad-geo-kml</code>.</p>
+    <pre><code>
+ &lt;section data-rad-geo-kml="kml/Mesopotamia.kml"&gt;
+    </code></pre>
+</section>
+
+<section data-rad-geo-kml="kml/bermuda_triangle.kmz" data-rad-geo-goto="25.0000° N, 71.0000° W" data-rad-geo-zoom="6.3">
+    <h2>How about a kmz file?</h2>
+    <p>You can also display <code>kmz</code> files (compressed <code>kml</code> files) using <code>data-rad-geo-kml</code>.</p>
+    <pre><code>
+ &lt;section data-rad-geo-kml="kml/bermuda_triangle.kmz"&gt;
+    </code></pre>
+</section>
+
+
 
 <section data-rad-geo>
     <h2>That's all folks</h2>
